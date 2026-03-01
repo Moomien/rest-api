@@ -55,7 +55,6 @@ func (b *BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -63,23 +62,28 @@ func (b *BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 // PUT /blogs/{id}
 func (b *BlogHandler) UpdateBlog(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
-	id, _ := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Wrong numbers", http.StatusBadRequest)
+		return
+	}
+
 	var newBlog Blog
 	if err := json.NewDecoder(r.Body).Decode(&newBlog); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
+	newBlog.ID = id
 	if err := b.Storage.SaveById(id, newBlog); err != nil {
 		if err.Error() == "Not found data" {
 			http.Error(w, "Blog not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "Failed to update", http.StatusInternalServerError)
+		http.Error(w, "Failed to update: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	response := map[string]string{"update": "success"}
-	json.NewEncoder(w).Encode(response)
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 // DELETE /blogs/{id}

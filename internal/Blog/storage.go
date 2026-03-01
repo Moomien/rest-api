@@ -27,6 +27,10 @@ func (j *JsonStorage) NewStorage(filename string) *JsonStorage {
 }
 
 func (j *JsonStorage) Delete(id int) error {
+	if _, err := j.LoadAll(); err != nil {
+		return err
+	}
+
 	if _, ok := j.cache[id]; !ok {
 		return errors.New("blog not found")
 	}
@@ -54,9 +58,10 @@ func (j *JsonStorage) SaveById(id int, data Blog) error {
 	}
 
 	found := false
-	for _, v := range blogs {
+	for i, v := range blogs {
 		if v.ID == id {
-			blogs[id] = v
+			blogs[i] = data
+			j.cache[id] = data
 			found = true
 			break
 		}
@@ -96,12 +101,9 @@ func (j *JsonStorage) Save(data Blog) error {
 }
 
 func (j *JsonStorage) LoadById(id int) (Blog, error) {
-	blogs, err := j.LoadAll()
+	_, err := j.LoadAll()
 	if err != nil {
 		return Blog{}, err
-	}
-	for _, v := range blogs {
-		j.cache[v.ID] = v
 	}
 
 	blog, ok := j.cache[id]
@@ -128,6 +130,8 @@ func (j *JsonStorage) LoadAll() ([]Blog, error) {
 	if err := json.Unmarshal(data, &blogs); err != nil {
 		return nil, err
 	}
-
+	for _, v := range blogs {
+		j.cache[v.ID] = v
+	}
 	return blogs, nil
 }
