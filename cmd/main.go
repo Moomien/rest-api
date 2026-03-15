@@ -2,13 +2,21 @@ package main
 
 import (
 	"blog-restapi/internal/Blog"
+	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	storage := &Blog.JsonStorage{}
-	storage = storage.NewStorage("jsonStorage")
+	conn, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		fmt.Printf("err: ", err)
+	}
+	storage := Blog.NewJsonStorage("jsonStorage")
 	handler := Blog.BlogHandler{Storage: storage}
 
 	http.HandleFunc("POST /blogs", handler.CreateBlog)
